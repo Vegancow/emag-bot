@@ -2,14 +2,19 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import re
+import random
 
 TOKEN = "6173977681:AAGBuceUISMAeeFsx0yGGZYaNTstm3SoyjE"
 CHAT_ID = "939492553"
 TARGET_PRICE = 5000
-CHECK_EVERY = 30  # 1 minut
+CHECK_EVERY = 60  # 5 minute (recomandat)
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Referer": "https://www.emag.ro/",
+    "Connection": "keep-alive",
 }
 
 SEARCH_URL = "https://www.emag.ro/telefoane-mobile/brand/apple/resigilate/filter/model-f9396,iphone-17-pro-v-13878975/c?ref=lst_leftbar_6407_resealed"
@@ -29,32 +34,25 @@ def parse_price(text):
     return float(match.group(1)) if match else None
 
 def is_blocked(response):
-    """Verifică dacă eMAG a blocat cererea"""
-    if response.status_code in (403, 429, 503):
+    if response.status_code in (403, 429, 503, 511):
         return True, f"Status code: {response.status_code}"
     
     text_lower = response.text.lower()
-    blocked_signs = [
-        "cloudflare",
-        "access denied",
-        "blocked",
-        "captcha",
-        "please wait",
-        "too many requests",
-        "forbidden"
-    ]
+    blocked_signs = ["cloudflare", "access denied", "blocked", "captcha", "please wait", "too many requests", "forbidden"]
     for sign in blocked_signs:
         if sign in text_lower:
             return True, f"Detectat: {sign}"
     
-    # Dacă pagina e aproape goală
     if len(response.text) < 1000:
-        return True, "Pagină prea scurtă (posibil blocare)"
+        return True, "Pagină prea scurtă"
     
     return False, None
 
 def check_emag():
     try:
+        # Delay aleatoriu mic înainte de cerere
+        time.sleep(random.uniform(1, 3))
+        
         r = requests.get(SEARCH_URL, headers=HEADERS, timeout=15)
         
         blocked, reason = is_blocked(r)
@@ -68,7 +66,7 @@ def check_emag():
         products = soup.select(".card-item, .card-v2")
         
         if not products:
-            send_telegram("⚠️ Nu am găsit niciun produs pe pagină. Posibil că eMAG a schimbat structura sau e blocat.")
+            send_telegram("⚠️ Nu am găsit niciun produs pe pagină.")
             return
         
         for p in products:
@@ -93,17 +91,13 @@ def check_emag():
                 send_telegram(msg)
                 print(f"Alertă: {title} - {price}")
                 
-    except requests.exceptions.RequestException as e:
-        msg = f"⚠️ Eroare de conexiune cu eMAG:\n{str(e)}"
-        send_telegram(msg)
-        print(msg)
     except Exception as e:
-        msg = f"⚠️ Eroare neașteptată:\n{str(e)}"
+        msg = f"⚠️ Eroare:\n{str(e)}"
         send_telegram(msg)
         print(msg)
 
 if __name__ == "__main__":
-    send_telegram("✅ Botul a pornit! Verific pagina la fiecare minut.")
+    send_telegram("✅ Botul a pornit! Verific pagina la fiecare 5 minute.")
     while True:
         check_emag()
-        time.sleep(CHECK_EVERY)
+        time.sleep(CHECK_EVERY + random.uniform(0, 30))  # + delay aleatoriu
