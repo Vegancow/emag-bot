@@ -5,14 +5,14 @@ import re
 
 TOKEN = "6173977681:AAGBuceUISMAeeFsx0yGGZYaNTstm3SoyjE"
 CHAT_ID = "939492553"
-TARGET_PRICE = 4500
-CHECK_EVERY = 900
+TARGET_PRICE = 5000
+CHECK_EVERY = 900  # 15 minute
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-SEARCH_URL = "https://www.emag.ro/search/iPhone+17+Pro+256/filter/disponibilitate-f1,resigilat-v-1"
+SEARCH_URL = "https://www.emag.ro/telefoane-mobile/brand/apple/resigilate/filter/model-f9396,iphone-17-pro-v-13878975/c?ref=lst_leftbar_6407_resealed"
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -41,9 +41,6 @@ def check_emag():
                 continue
                 
             title = title_el.get_text(strip=True)
-            if "256" not in title or "resigilat" not in title.lower():
-                continue
-                
             price = parse_price(price_el.get_text())
             link = link_el["href"] if link_el and link_el.get("href") else SEARCH_URL
             if link.startswith("/"):
@@ -60,7 +57,7 @@ def check_emag():
         print("Eroare:", e)
 
 if __name__ == "__main__":
-    send_telegram("✅ Botul a pornit! Monitorizez iPhone 17 Pro 256 resigilate sub 4500 lei.")
+    send_telegram("✅ Botul a pornit! Monitorizez pagina de iPhone 17 Pro resigilate și te anunț când apare ceva sub 5000 lei.")
     while True:
         check_emag()
         time.sleep(CHECK_EVERY)
